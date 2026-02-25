@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Disk Allocation Strategy Simulator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: #38bdf8;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 15px;
+            width: 350px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .card h2 {
+            margin-bottom: 15px;
+            color: #f1f5f9;
+            font-size: 18px;
+        }
+
+        label {
+            font-size: 14px;
+            margin-top: 10px;
+            display: block;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 6px;
+            border-radius: 8px;
+            border: none;
+            background: #334155;
+            color: white;
+            font-size: 14px;
+        }
+
+        button {
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background: #38bdf8;
+            color: #0f172a;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+
+        button:hover {
+            background: #0ea5e9;
+            transform: translateY(-2px);
+        }
+
+        .result-card {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            width: 500px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .info-box {
+            background: #334155;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .disk-section {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .disk {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 45px);
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .block {
+            width: 45px;
+            height: 45px;
+            border-radius: 8px;
+            background: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: 0.3s;
+        }
+
+        .allocated {
+            background: #22c55e;
+            color: black;
+            transform: scale(1.1);
+        }
+
+        .index-block {
+            background: #f59e0b;
+            color: black;
+            transform: scale(1.1);
+        }
+
+        @media(max-width: 900px){
+            .container {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Disk Allocation Strategy Simulator</h1>
+
+<div class="container">
+
+    <div class="card">
+        <h2>Simulation Settings</h2>
+
+        <label>Disk Size (Blocks)</label>
+        <input type="number" id="diskSize" value="50">
+
+        <label>File Size (Blocks)</label>
+        <input type="number" id="fileSize" value="5">
+
+        <label>Allocation Method</label>
+        <select id="method">
+            <option value="contiguous">Contiguous</option>
+            <option value="linked">Linked</option>
+            <option value="indexed">Indexed</option>
+        </select>
+
+        <button onclick="simulate()">Run Simulation</button>
+    </div>
+
+    <div id="result"></div>
+
+</div>
+
+<div class="disk-section">
+    <h2>Disk Blocks</h2>
+    <div class="disk" id="disk"></div>
+</div>
+
+<script>
+function simulate() {
+    const diskSize = parseInt(document.getElementById("diskSize").value);
+    const fileSize = parseInt(document.getElementById("fileSize").value);
+    const method = document.getElementById("method").value;
+
+    if (fileSize > diskSize) {
+        alert("File size cannot exceed disk size!");
+        return;
+    }
+
+    let disk = new Array(diskSize).fill(0);
+    let allocated = [];
+    let indexBlock = null;
+    let accessTime = 0;
+
+    if (method === "contiguous") {
+        let start = Math.floor(Math.random() * (diskSize - fileSize));
+        for (let i = 0; i < fileSize; i++) {
+            disk[start + i] = 1;
+            allocated.push(start + i);
+        }
+        accessTime = fileSize * 1;
+    }
+
+    else if (method === "linked") {
+        while (allocated.length < fileSize) {
+            let block = Math.floor(Math.random() * diskSize);
+            if (!allocated.includes(block)) {
+                disk[block] = 1;
+                allocated.push(block);
+            }
+        }
+        accessTime = fileSize * 2;
+    }
+
+    else if (method === "indexed") {
+        indexBlock = Math.floor(Math.random() * diskSize);
+        disk[indexBlock] = 2;
+
+        while (allocated.length < fileSize) {
+            let block = Math.floor(Math.random() * diskSize);
+            if (!allocated.includes(block) && block !== indexBlock) {
+                disk[block] = 1;
+                allocated.push(block);
+            }
+        }
+        accessTime = fileSize * 1.5;
+    }
+
+    displayDisk(disk);
+    displayResult(method, allocated, indexBlock, diskSize, fileSize, accessTime);
+}
+
+function displayDisk(disk) {
+    const diskDiv = document.getElementById("disk");
+    diskDiv.innerHTML = "";
+
+    disk.forEach((val, index) => {
+        const block = document.createElement("div");
+        block.classList.add("block");
+
+        if (val === 1) block.classList.add("allocated");
+        if (val === 2) block.classList.add("index-block");
+
+        block.innerText = index;
+        diskDiv.appendChild(block);
+    });
+}
+
+function displayResult(method, blocks, indexBlock, diskSize, fileSize, accessTime) {
+    const utilization = (fileSize / diskSize) * 100;
+
+    let html = `
+        <div class="result-card">
+            <h2>Simulation Result</h2>
+            <div class="info-grid">
+                <div class="info-box"><b>Method</b><br>${method}</div>
+                <div class="info-box"><b>Access Time</b><br>${accessTime} units</div>
+                <div class="info-box"><b>Disk Utilization</b><br>${utilization.toFixed(2)}%</div>
+                ${indexBlock !== null ? `<div class="info-box"><b>Index Block</b><br>${indexBlock}</div>` : ""}
+            </div>
+            <p style="margin-top:15px;"><b>Allocated Blocks:</b> ${blocks.join(", ")}</p>
+        </div>
+    `;
+
+    document.getElementById("result").innerHTML = html;
+}
+</script>
+
+</body>
+</html>
